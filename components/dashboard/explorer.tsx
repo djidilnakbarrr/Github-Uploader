@@ -116,133 +116,64 @@ export function Explorer() {
     }
   }
 
-  // Hapus semua file di folder yang sedang dibuka (termasuk subfolder).
-  // Cara 1: satu commit lewat Git Data API. Jika gagal (mis. "Not Found"), otomatis
-  // pakai cara 2: hapus file satu per satu lewat Contents API (sama seperti tombol hapus per file).
+  // Hapus semua file di folder yang sedang dibuka (termasuk subfolder) dalam SATU commit.
   const handleDeleteAll = async () => {
     setDeletingAll(true)
-    const repo = config.repo.trim()
-    const branch = config.branch.trim()
-    const base = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
-    const branchPath = encodeRepoPath(branch)
-    const headers = {
-      Authorization: `Bearer ${config.token}`,
-      Accept: "application/vnd.github+json",
-      "Content-Type": "application/json",
-    }
-    const call = async (step: string, url: string, init?: RequestInit) => {
-      const res = await fetch(url, { ...init, headers, cache: "no-store" })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(`${step}: ${data?.message || res.status}`)
-      return data
-    }
-    const prefix = currentPath ? `${currentPath}/` : ""
-    const commitMessage = currentPath ? `Hapus semua file di ${currentPath}` : "Hapus semua file"
+    try {
+      const repo = config.repo.trim()
+      const branch = config.branch.trim()
+      const base = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+      const headers = {
+        Authorization: `Bearer ${config.token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+      }
+      const call = async (url: string, init?: RequestInit) => {
+        const res = await fetch(url, { ...init, headers, cache: "no-store" })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.message || `Permintaan gagal (${res.status})`)
+        return data
+      }
 
-    // ---- Cara 1: satu commit ----
-    const deleteViaSingleCommit = async (): Promise<number> => {
-      const ref = await call("ambil cabang", `${base}/git/ref/heads/${branchPath}`)
+      const ref = await call(`${base}/git/ref/heads/${encodeURIComponent(branch).replace(/%2F/g, "/")}`)
       const headSha: string = ref.object.sha
-      const headCommit = await call("ambil commit", `${base}/git/commits/${headSha}`)
-      const tree = await call("ambil tree", `${base}/git/trees/${headCommit.tree.sha}?recursive=1`)
+      const headCommit = await call(`${base}/git/commits/${headSha}`)
+      const tree = await call(`${base}/git/trees/${headCommit.tree.sha}?recursive=1`)
       if (tree.truncated) throw new Error("Repositori terlalu besar untuk dihapus sekaligus")
 
+      const prefix = currentPath ? `${currentPath}/` : ""
       const targets = (tree.tree as any[]).filter(
         (n) => n.type === "blob" && (!prefix || n.path.startsWith(prefix))
       )
-      if (targets.length === 0) return 0
-
-      // Jika semua file repo dihapus, pakai tree kosong (tanpa base_tree) agar tidak error.
-      const deletesEverything = (tree.tree as any[]).every((n) => n.type !== "blob" || targets.includes(n))
-      const newTree = await call("buat tree", `${base}/git/trees`, {
-        method: "POST",
-        body: JSON.stringify(
-          deletesEverything
-            ? { tree: [] }
-            : {
-                base_tree: headCommit.tree.sha,
-                tree: targets.map((n) => ({ path: n.path, mode: n.mode, type: "blob", sha: null })),
-              }
-        ),
-      })
-      const commit = await call("buat commit", `${base}/git/commits`, {
-        method: "POST",
-        body: JSON.stringify({ message: commitMessage, tree: newTree.sha, parents: [headSha] }),
-      })
-      await call("perbarui cabang", `${base}/git/refs/heads/${branchPath}`, {
-        method: "PATCH",
-        body: JSON.stringify({ sha: commit.sha, force: false }),
-      })
-      return targets.length
-    }
-
-    // ---- Cara 2: hapus satu per satu ----
-    const listAllFiles = async (path: string): Promise<{ path: string; sha: string }[]> => {
-      const enc = encodeRepoPath(path)
-      const items = await call(
-        "baca folder",
-        `${base}/contents${enc ? `/${enc}` : ""}?ref=${encodeURIComponent(branch)}`
-      )
-      const list: any[] = Array.isArray(items) ? items : [items]
-      const out: { path: string; sha: string }[] = []
-      for (const it of list) {
-        if (it.type === "dir") out.push(...(await listAllFiles(it.path)))
-        else if (it.type === "file") out.push({ path: it.path, sha: it.sha })
-      }
-      return out
-    }
-    const deleteOneByOne = async (): Promise<number> => {
-      const all = await listAllFiles(currentPath)
-      if (all.length === 0) return 0
-      const toastId = toast.loading(`Menghapus 0/${all.length} file...`)
-      let done = 0
-      try {
-        for (const f of all) {
-          let sha = f.sha
-          for (let attempt = 0; attempt < 4; attempt++) {
-            const res = await fetch(`${base}/contents/${encodeRepoPath(f.path)}`, {
-              method: "DELETE",
-              headers,
-              body: JSON.stringify({ message: `Hapus ${f.path}`, sha, branch }),
-            })
-            if (res.ok || res.status === 404) break // 404 = sudah terhapus
-            const data = await res.json().catch(() => ({}))
-            if ((res.status === 409 || res.status === 422) && attempt < 3) {
-              // cabang baru berubah / sha usang: ambil sha terbaru lalu ulangi
-              await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
-              const cur = await fetch(
-                `${base}/contents/${encodeRepoPath(f.path)}?ref=${encodeURIComponent(branch)}`,
-                { headers, cache: "no-store" }
-              )
-              if (cur.status === 404) break
-              if (cur.ok) sha = (await cur.json()).sha
-              continue
-            }
-            throw new Error(`hapus ${f.path}: ${data?.message || res.status}`)
-          }
-          done++
-          toast.loading(`Menghapus ${done}/${all.length} file...`, { id: toastId })
-        }
-      } finally {
-        toast.dismiss(toastId)
-      }
-      return done
-    }
-
-    try {
-      let count: number
-      try {
-        count = await deleteViaSingleCommit()
-      } catch (e: any) {
-        console.warn("Hapus satu commit gagal, pakai cara per-file:", e)
-        count = await deleteOneByOne()
-      }
-      if (count === 0) {
+      if (targets.length === 0) {
         toast.info("Tidak ada file untuk dihapus")
-      } else {
-        toast.success(`${count} file berhasil dihapus`)
+        setConfirmAllOpen(false)
+        return
       }
+
+      const newTree = await call(`${base}/git/trees`, {
+        method: "POST",
+        body: JSON.stringify({
+          base_tree: headCommit.tree.sha,
+          tree: targets.map((n) => ({ path: n.path, mode: n.mode, type: "blob", sha: null })),
+        }),
+      })
+      const commit = await call(`${base}/git/commits`, {
+        method: "POST",
+        body: JSON.stringify({
+          message: currentPath ? `Hapus semua file di ${currentPath}` : "Hapus semua file",
+          tree: newTree.sha,
+          parents: [headSha],
+        }),
+      })
+      await call(`${base}/git/refs/heads/${encodeURIComponent(branch).replace(/%2F/g, "/")}`, {
+        method: "PATCH",
+        body: JSON.stringify({ sha: commit.sha }),
+      })
+
+      toast.success(`${targets.length} file berhasil dihapus`)
       setConfirmAllOpen(false)
+      // Jika folder sekarang kosong, GitHub menghilangkannya: naik ke induk yang masih ada
       await fetchFiles(currentPath)
     } catch (err: any) {
       toast.error(`Gagal menghapus semua: ${err.message}`)
@@ -360,7 +291,7 @@ export function Explorer() {
             <DialogDescription>
               Semua file di <span className="font-mono font-medium text-foreground">{config.repo} / {currentPath || "<root>"}</span>{" "}
               beserta isi subfolder-nya akan dihapus dari cabang{" "}
-              <span className="font-medium text-foreground">{config.branch}</span> Tindakan ini tidak dapat dibatalkan dari aplikasi.
+              <span className="font-medium text-foreground">{config.branch}</span> dalam satu commit. Tindakan ini tidak dapat dibatalkan dari aplikasi.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
