@@ -5,7 +5,7 @@
    - Ikon dan manifest: jaringan dulu, cadangan cache.
    - Lainnya (API GitHub, lintas domain, non-GET) tidak disentuh. */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE_PREFIX = 'github-uploader-';
 const STATIC_CACHE = CACHE_PREFIX + 'static-' + VERSION;
 const PAGES_CACHE = CACHE_PREFIX + 'pages-' + VERSION;
@@ -25,6 +25,8 @@ function isCacheable(response) {
 }
 
 self.addEventListener('install', (event) => {
+  // Versi baru langsung aktif tanpa menunggu tab lama ditutup
+  self.skipWaiting();
   event.waitUntil(
     caches
       .open(STATIC_CACHE)
@@ -74,7 +76,7 @@ function storeCopy(event, cacheName, request, response) {
 
 async function networkFirst(event, request, cacheName) {
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, { cache: 'no-store' });
     if (isCacheable(response)) {
       storeCopy(event, cacheName, request, response);
     }

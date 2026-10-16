@@ -82,13 +82,17 @@ export function Uploader() {
 
   // Peringatkan jika tab ditutup saat unggahan berjalan
   useEffect(() => {
+    ;(window as any).__appBusy = isUploading
     if (!isUploading) return
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault()
       e.returnValue = ""
     }
     window.addEventListener("beforeunload", handler)
-    return () => window.removeEventListener("beforeunload", handler)
+    return () => {
+      window.removeEventListener("beforeunload", handler)
+      ;(window as any).__appBusy = false
+    }
   }, [isUploading])
 
   const handleFolderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
