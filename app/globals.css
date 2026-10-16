@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Values are oklch channels ("L C H") so Tailwind opacity modifiers (bg-primary/90) work. */
+  :root {
+    --background: 0.974 0.011 84.6;
+    --foreground: 0.257 0.022 63.6;
+    --card: 0.992 0.009 84.6;
+    --card-foreground: 0.257 0.022 63.6;
+    --popover: 0.992 0.009 84.6;
+    --popover-foreground: 0.257 0.022 63.6;
+    --primary: 0.438 0.064 63.1;
+    --primary-foreground: 0.974 0.011 84.6;
+    --secondary: 0.933 0.023 84.6;
+    --secondary-foreground: 0.333 0.052 57.7;
+    --muted: 0.933 0.023 84.6;
+    --muted-foreground: 0.519 0.040 76.7;
+    --accent: 0.901 0.043 86.0;
+    --accent-foreground: 0.333 0.052 57.7;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 1 0 0;
+    --border: 0.880 0.032 82.8;
+    --input: 0.844 0.041 83.1;
+    --ring: 0.656 0.094 79.0;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 0.183 0.014 61.6;
+    --foreground: 0.954 0.016 82.8;
+    --card: 0.218 0.021 63.0;
+    --card-foreground: 0.954 0.016 82.8;
+    --popover: 0.218 0.021 63.0;
+    --popover-foreground: 0.954 0.016 82.8;
+    --primary: 0.783 0.097 81.1;
+    --primary-foreground: 0.239 0.036 62.8;
+    --secondary: 0.266 0.026 66.4;
+    --secondary-foreground: 0.954 0.016 82.8;
+    --muted: 0.266 0.026 66.4;
+    --muted-foreground: 0.747 0.036 80.2;
+    --accent: 0.305 0.034 69.8;
+    --accent-foreground: 0.954 0.016 82.8;
+    --destructive: 0.704 0.191 22.216;
+    --destructive-foreground: 1 0 0;
+    --border: 0.311 0.027 66.6;
+    --input: 0.364 0.033 68.3;
+    --ring: 0.783 0.097 81.1;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Motif kawung batik tipis, sama dengan ikon aplikasi */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%236B4A2B' stroke-width='1.4' stroke-opacity='0.10'%3E%3Cellipse cx='60' cy='30' rx='18' ry='27.6'/%3E%3Cellipse cx='60' cy='90' rx='18' ry='27.6'/%3E%3Cellipse cx='30' cy='60' rx='27.6' ry='18'/%3E%3Cellipse cx='90' cy='60' rx='27.6' ry='18'/%3E%3Ccircle cx='60' cy='60' r='2.4' fill='%236B4A2B' fill-opacity='0.14' stroke='none'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+  }
+  .dark body {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23D8B26E' stroke-width='1.4' stroke-opacity='0.09'%3E%3Cellipse cx='60' cy='30' rx='18' ry='27.6'/%3E%3Cellipse cx='60' cy='90' rx='18' ry='27.6'/%3E%3Cellipse cx='30' cy='60' rx='27.6' ry='18'/%3E%3Cellipse cx='90' cy='60' rx='27.6' ry='18'/%3E%3Ccircle cx='60' cy='60' r='2.4' fill='%23D8B26E' fill-opacity='0.12' stroke='none'/%3E%3C/svg%3E");
+  }
+}
+
+
+/* Cegah elemen keluar dari kotak / halaman bergeser ke samping */
+html, body { max-width: 100%; overflow-x: hidden; }
