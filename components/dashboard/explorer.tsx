@@ -229,43 +229,43 @@ export function Explorer() {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="border-t overflow-x-auto">
-          <table className="w-full text-sm text-left ">
+        <div className="border-t overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+          <table className="w-full min-w-[640px] text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
-                <th className="px-3 py-3 font-medium sm:px-6">Nama</th>
-                <th className="px-3 py-3 font-medium sm:px-6">Tipe</th>
-                <th className="px-3 py-3 font-medium sm:px-6">Ukuran</th>
-                <th className="px-3 py-3 text-right font-medium sm:px-6">Aksi</th>
+                <th className="px-5 py-3 font-medium whitespace-nowrap sm:px-6">Nama</th>
+                <th className="px-5 py-3 font-medium whitespace-nowrap sm:px-6">Tipe</th>
+                <th className="px-5 py-3 font-medium whitespace-nowrap sm:px-6">Ukuran</th>
+                <th className="px-5 py-3 text-right font-medium whitespace-nowrap sm:px-6">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {loading ? (
-                <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">Memuat...</td></tr>
+                <tr><td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">Memuat...</td></tr>
               ) : filteredFiles.length === 0 ? (
-                <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">Tidak ada file ditemukan</td></tr>
+                <tr><td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">Tidak ada file ditemukan</td></tr>
               ) : (
                 filteredFiles.map((file) => (
                   <tr key={file.sha || file.path} className="hover:bg-muted/50 transition-colors">
-                    <td className="max-w-[10rem] px-3 py-3 sm:max-w-none sm:px-6">
+                    <td className="min-w-[14rem] px-5 py-3 sm:px-6">
                       <div className="flex items-center gap-2">
                         {file.type === "dir" ? <Folder className="h-4 w-4 text-primary" /> : <File className="h-4 w-4 text-muted-foreground" />}
                         {file.type === "dir" ? (
-                          <button onClick={() => navigateTo(file.path)} className="break-all text-left font-medium hover:underline">
+                          <button onClick={() => navigateTo(file.path)} className="whitespace-nowrap text-left font-medium hover:underline">
                             {file.name}
                           </button>
                         ) : (
-                          <a href={file.download_url} target="_blank" rel="noreferrer" className="break-all hover:underline">
+                          <a href={file.download_url} target="_blank" rel="noreferrer" className="whitespace-nowrap hover:underline">
                             {file.name}
                           </a>
                         )}
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-muted-foreground sm:px-6">{file.type === "dir" ? "Dir" : "File"}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-muted-foreground sm:px-6">
+                    <td className="whitespace-nowrap px-5 py-3 text-muted-foreground sm:px-6">{file.type === "dir" ? "Dir" : "File"}</td>
+                    <td className="whitespace-nowrap px-5 py-3 text-muted-foreground sm:px-6">
                       {file.type === "file" ? (file.size > 1024 ? `${(file.size / 1024).toFixed(1)} KB` : `${file.size} B`) : "--"}
                     </td>
-                    <td className="px-3 py-3 text-right sm:px-6">
+                    <td className="px-5 py-3 text-right sm:px-6">
                       {file.type === "file" && (
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDelete(file)}>
