@@ -53,10 +53,25 @@ export function Uploader() {
       .then(items => {
         if (cancelled || items.length === 0) return
         setQueue(prev => [...items, ...prev])
+        const restoredIds = new Set(items.map(it => it.id))
         toast.info(`${items.length} file dari sesi sebelumnya dipulihkan`, {
           id: "queue-restored",
           duration: 15000,
           action: { label: "Lanjutkan", onClick: () => startRef.current() },
+          cancel: {
+            label: "Batal",
+            onClick: () => {
+              // Jangan hapus file saat unggahan sedang berjalan
+              if (uploadingRef.current) {
+                toast.info("Unggahan sedang berjalan, file tidak dapat dibatalkan sekarang")
+                return
+              }
+              // Buang hanya file hasil pemulihan; file yang ditambahkan manual tetap ada.
+              // Penyimpanan perangkat ikut diperbarui oleh efek penyimpan antrean.
+              setQueue(prev => prev.filter(it => !restoredIds.has(it.id)))
+              toast.success("Pemulihan dibatalkan, file sesi sebelumnya dibuang")
+            },
+          },
         })
       })
       .catch(() => {})
